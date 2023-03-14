@@ -3,13 +3,13 @@ const bodyParser = require("body-parser");
 const http = require("http");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
-const cookieParser = require("cookie-parser");
+const session = require("express-session");
+const FileStore = require("session-file-store")(session);
 
 const dishRouter = require("./dishRouter");
 
 const hostname = "localhost";
-const port = process.env.PORT || 8000;
-
+const port = process.env.PORT || 3000;
 
 const app = express();
 
@@ -22,11 +22,17 @@ connect.then((db)=>{
     console.log("Connected to server successfully..");
     },(err)=>console.log(err));
 
-    app.use(cookieParser('677667-766776'));
+    app.use(session({
+        name: "session",
+        secret: "677667-766776",
+        saveUninitialized: false,
+        resave: false,
+        store: new FileStore()
+    }));
 
     function auth(req,res,next){
-        
-        if(!req.signedCookies.user){
+
+        if(!req.session.user){
             console.log(req.headers);
             var authHeader = req.headers.authorization;
             console.log(authHeader);
@@ -43,7 +49,7 @@ connect.then((db)=>{
             var password = authInfo[1];
             console.log(username + " : " + password);
             if(username == "admin" && password == "password"){
-                res.cookie("user", "admin", {signed: true});
+                req.session.user = "admin";
                 next(); // Authorized..
             }
             else{
@@ -54,7 +60,8 @@ connect.then((db)=>{
             }
         }
         else{
-            if(req.signedCookies.user == "admin"){
+            if(req.session.user == "admin"){
+                console.log(req.session);
                 next(); // Server assigns cookie to user
             }
             else{
